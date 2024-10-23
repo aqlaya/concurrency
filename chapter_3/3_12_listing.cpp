@@ -1,0 +1,52 @@
+#include <iostream> 
+#include <string>
+#include <thread>
+#include <mutex>
+
+using connection_info = std::string;
+using data_packet = std::string;
+
+class connection_handle {
+public:
+    void send_data(data_packet const& data);
+    data_packet receive_data();    
+};
+
+
+class connection {
+public:
+    connection_handle open(connection_info) {}
+};
+
+connection connection_manager;
+
+
+class X
+{
+
+private:
+    connection_info connection_details;
+    connection_handle connection;
+    std::once_flag connection_init_flag;
+
+    void open_connection()
+    {
+        connection = connection_manager.open(connection_details);
+    }
+
+public:
+    X(connection_info const& connection_details_):
+        connection_details(connection_details_)
+    {}
+
+    void send_data(data_packet const& data) 
+    {
+        std::call_once(connection_init_flag, &X::open_connection, this);
+        connection.send_data(data);
+    }
+    data_packet receive_data() 
+    {
+        std::call_once(connection_init_flag, &X::open_connection, this);
+        return connection.receive_data();
+    }
+};
